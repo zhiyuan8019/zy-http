@@ -1,0 +1,5 @@
+#Third party lib version
+
+# liburing
+# url: https://github.com/axboe/liburing.git
+# tag: liburing-2.4
