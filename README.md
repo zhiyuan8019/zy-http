@@ -1,19 +1,64 @@
 # `zy-http`
 
-`zy-http`是基于`io_uring`和`C++ Coroutine`编写的静态资源http服务器。与主流的基于Reactor+Epoll的服务器不同，本项目基于Linux下最新的异步IO库io_uring构建了Proactor模式的服务器。
+## `zy-http`: 基于`io_uring`和`C++ Coroutine`的静态资源HTTP服务器
 
-- 基于C++ Coroutine无栈协程对io_uring的异步IO接口和服务过程进行包装，实现简洁的异步调用
+与传统的基于Reactor+Epoll技术栈的服务器不同，`zy-http`利用了Linux下的最新的异步IO库 — `io_uring`，构建了一个高效的`Proactor`模式服务器。
 
-- 基于线程池和io_uring的ring_msg接口实现主线程accept、内核IO、工作线程逻辑处理的Proactor模式
+**主要特性**：
 
-- 基于RAII的生命周期管理，基于uniqe_ptr的内存管理
+- **简洁的异步调用**：使用C++ `Coroutine`的无栈协程对`io_uring`的异步IO接口进行了封装，使得异步调用变得简洁而直观。
 
-- 基于splice的零拷贝发送
+- **高效的Proactor模式**：基于线程池和`io_uring`的ring_msg接口，实现了主线程的accept、内核IO以及工作线程进行逻辑处理，最大化减少IO阻塞和系统调用次数，确保了高效的任务处理和调度。
+
+- **优化的生命周期与内存管理**：
+  - 利用RAII技术进行资源的生命周期管理，确保资源的正确获取和释放。
+
+  - 使用`uniqe_ptr`进行内存管理，减少内存泄漏的可能性。
+
+- **零拷贝技术**：采用`splice`技术，零拷贝实现文件的读取和发送，避免了文件在用户和内核间进行拷贝。
+
 
 
 ## 软件架构
 
 ![](./image.png)
+
+## 工作流程
+
+- 主线程首先依据硬件并发数初始化对应数量的`io_uring`实例并为其注册环形缓冲区`ring_buffer`，之后完成server socket的初始化: `bind()`,`listen()`，并向主线程`io_uring`注册`multishot_accept`事件
+
+- 主线程循环等待完成事件，从中获取`client`的文件描述符`fd`，并初始化协程任务（协程会在`initial_suspend()`调用后暂停）。之后主线程将协程地址作为`ring_msg`由主线程`io_uring`发送到工作线程的`io_uring`
+
+- 工作线程循环等待线程所属的`io_uring`的完成事件，从中获取协程地址，恢复协程
+
+- 协程依照处理逻辑完成套接字读取、http解析、数据发送，所有的套接字IO请求将会生成一个`io_uring`事件，并挂起当前协程，等待IO完成后由工作线程唤醒
+
+## 协程伪代码
+
+```cpp
+auto coroutine(client_fd,io_uring*) -> Task<> {
+    //客端初始化
+    Client client(fd,io_ring*);
+    //异步接收
+    content = co_await client.recv();
+    //报文解析
+    HttpParser parser(content);
+    if(valid_request){
+        //200 OK
+        HttpResponse response(200);
+        //响应
+        ret = co_await client.send(response);
+        //内容
+        ret = co_await client.send(file);
+    }else{
+        //404 Not Found
+        HttpResponse response(404);
+        //响应
+        ret = co_await client.send(response);
+    }
+}
+
+```
 
 ## 系统与编译
 
@@ -33,53 +78,59 @@ C++标准: C++ 23
 
 测试环境： CPU : 6800H 8C16T，Memory : 16GB
 
-总计10W请求，5000客户端并发，请求数据大小1K，所有请求3.68秒完成
+总计100W请求，5000客户端并发，请求数据大小1K，所有请求31.29秒完成
 
 
 ```console
-./hey_linux_amd64 -n 100000 -c 5000 http://127.0.0.1:80/1K
+./hey_linux_amd64 -n 1000000 -c 5000 http://127.0.0.1:80/1K
 
 Summary:
-  Total:        3.6896 secs
-  Slowest:      1.5335 secs
+  Total:        31.2918 secs
+  Slowest:      1.4933 secs
   Fastest:      0.0001 secs
-  Average:      0.1674 secs
-  Requests/sec: 27103.4861
+  Average:      0.1497 secs
+  Requests/sec: 31957.2095
   
-  Total data:   102400000 bytes
+  Total data:   1024000000 bytes
   Size/request: 1024 bytes
 
 Response time histogram:
   0.000 [1]     |
-  0.153 [57073] |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
-  0.307 [29016] |■■■■■■■■■■■■■■■■■■■■
-  0.460 [9027]  |■■■■■■
-  0.613 [1686]  |■
-  0.767 [1462]  |■
-  0.920 [928]   |■
-  1.073 [762]   |■
-  1.227 [39]    |
-  1.380 [5]     |
-  1.533 [1]     |
+  0.149 [598721]        |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+  0.299 [266598]        |■■■■■■■■■■■■■■■■■■
+  0.448 [110368]        |■■■■■■■
+  0.597 [18776] |■
+  0.747 [4376]  |
+  0.896 [939]   |
+  1.045 [177]   |
+  1.195 [37]    |
+  1.344 [5]     |
+  1.493 [2]     |
 
 
 Latency distribution:
-  10% in 0.0012 secs
-  25% in 0.0587 secs
-  50% in 0.1171 secs
-  75% in 0.2196 secs
-  90% in 0.3367 secs
-  95% in 0.4492 secs
-  99% in 0.8977 secs
+  10% in 0.0013 secs
+  25% in 0.0837 secs
+  50% in 0.1168 secs
+  75% in 0.2178 secs
+  90% in 0.3191 secs
+  95% in 0.3897 secs
+  99% in 0.5394 secs
 
 Details (average, fastest, slowest):
-  DNS+dialup:   0.0072 secs, 0.0001 secs, 1.5335 secs
+  DNS+dialup:   0.0052 secs, 0.0001 secs, 1.4933 secs
   DNS-lookup:   0.0000 secs, 0.0000 secs, 0.0000 secs
-  req write:    0.0025 secs, 0.0000 secs, 0.6548 secs
-  resp wait:    0.0194 secs, 0.0000 secs, 0.3821 secs
-  resp read:    0.0494 secs, 0.0000 secs, 0.6313 secs
+  req write:    0.0006 secs, -0.0000 secs, 0.1844 secs
+  resp wait:    0.0053 secs, -0.0000 secs, 0.3617 secs
+  resp read:    0.0602 secs, 0.0000 secs, 0.7012 secs
 
 Status code distribution:
-  [200] 100000 responses
+  [200] 1000000 responses
 
 ```
+
+## 火焰图
+
+perf采样了压测过程，瓶颈主要出现在close和io_uring_submit
+
+![](./flamegraph.svg)
