@@ -85,44 +85,44 @@ C++标准: C++ 23
 ./hey_linux_amd64 -n 1000000 -c 5000 http://127.0.0.1:80/1K
 
 Summary:
-  Total:        31.2918 secs
-  Slowest:      1.4933 secs
+  Total:        23.3964 secs
+  Slowest:      1.5473 secs
   Fastest:      0.0001 secs
-  Average:      0.1497 secs
-  Requests/sec: 31957.2095
+  Average:      0.1131 secs
+  Requests/sec: 42741.6280
   
   Total data:   1024000000 bytes
   Size/request: 1024 bytes
 
 Response time histogram:
   0.000 [1]     |
-  0.149 [598721]        |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
-  0.299 [266598]        |■■■■■■■■■■■■■■■■■■
-  0.448 [110368]        |■■■■■■■
-  0.597 [18776] |■
-  0.747 [4376]  |
-  0.896 [939]   |
-  1.045 [177]   |
-  1.195 [37]    |
-  1.344 [5]     |
-  1.493 [2]     |
+  0.155 [674752]        |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+  0.310 [273064]        |■■■■■■■■■■■■■■■■
+  0.464 [42504] |■■■
+  0.619 [8219]  |
+  0.774 [1281]  |
+  0.928 [153]   |
+  1.083 [21]    |
+  1.238 [2]     |
+  1.393 [2]     |
+  1.547 [1]     |
 
 
 Latency distribution:
-  10% in 0.0013 secs
-  25% in 0.0837 secs
-  50% in 0.1168 secs
-  75% in 0.2178 secs
-  90% in 0.3191 secs
-  95% in 0.3897 secs
-  99% in 0.5394 secs
+  10% in 0.0005 secs
+  25% in 0.0064 secs
+  50% in 0.0887 secs
+  75% in 0.1694 secs
+  90% in 0.2511 secs
+  95% in 0.3140 secs
+  99% in 0.4597 secs
 
 Details (average, fastest, slowest):
-  DNS+dialup:   0.0052 secs, 0.0001 secs, 1.4933 secs
+  DNS+dialup:   0.0032 secs, 0.0001 secs, 1.5473 secs
   DNS-lookup:   0.0000 secs, 0.0000 secs, 0.0000 secs
-  req write:    0.0006 secs, -0.0000 secs, 0.1844 secs
-  resp wait:    0.0053 secs, -0.0000 secs, 0.3617 secs
-  resp read:    0.0602 secs, 0.0000 secs, 0.7012 secs
+  req write:    0.0003 secs, 0.0000 secs, 0.2377 secs
+  resp wait:    0.0021 secs, -0.0000 secs, 0.3284 secs
+  resp read:    0.0452 secs, 0.0000 secs, 0.7930 secs
 
 Status code distribution:
   [200] 1000000 responses

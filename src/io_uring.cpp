@@ -142,9 +142,9 @@ auto BufferRing::register_buffer_ring(IoUring *to_register) -> void {
     buffer_list_ = std::vector<std::unique_ptr<char[]>>(ZY_IO_URING_BUFFER_RING_SIZE);
 
     for (unsigned int i = 0; i < ZY_IO_URING_BUFFER_RING_SIZE; ++i) {
-        void *tmp = nullptr;
-        posix_memalign((void **)&tmp, page_alignment, ZY_IO_URING_BUFFER_SIZE * sizeof(char));
-
+        // void *tmp = nullptr;
+        // posix_memalign((void **)&tmp, page_alignment, ZY_IO_URING_BUFFER_SIZE * sizeof(char));
+        char *tmp = new char[ZY_IO_URING_BUFFER_SIZE];
         buffer_list_[i].reset(reinterpret_cast<char *>(tmp));
     }
 

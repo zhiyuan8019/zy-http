@@ -16,6 +16,10 @@ struct user_data {
     bool only_coroutine = false;
 };
 
+struct FreeDeleter {
+    void operator()(void *ptr) const { free(ptr); }
+};
+
 class IoUring {
   private:
     ::io_uring ring_;
@@ -90,7 +94,7 @@ class BufferRing {
 
   private:
     unsigned buf_size_ = ZY_IO_URING_BUFFER_SIZE;
-    std::unique_ptr<io_uring_buf_ring> buffer_ring_;
+    std::unique_ptr<io_uring_buf_ring, FreeDeleter> buffer_ring_;
     std::vector<std::unique_ptr<char[]>> buffer_list_;
 };
 
