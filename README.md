@@ -4,6 +4,9 @@
 
 与传统的基于Reactor+Epoll技术栈的服务器不同，`zy-http`利用了Linux下的最新的异步IO库 — `io_uring`，构建了一个高效的`Proactor`模式服务器。
 
+注：zy-http从另一个角度其实也是一个基于协程和io_uring的通用任务调度框架，受限于框架的重点在网络的部分，目前视为一个http服务器更为贴切
+
+
 **主要特性**：
 
 - **简洁的异步调用**：使用C++ `Coroutine`的无栈协程对`io_uring`的异步IO接口进行了封装，使得异步调用变得简洁而直观。
@@ -204,6 +207,10 @@ Status code distribution:
 
 ## 火焰图
 
-perf采样了压测过程，瓶颈主要出现在close和io_uring_submit
+通过perf采样了压测过程，发现协程任务中的动态的内存申请存在一定的瓶颈。通过在框架中加入了io_uring的buffer_ring特性，解决了这一问题
+
+目前瓶颈主要出现在pipe，open，close和io_uring_submit
+
+
 
 ![](./flamegraph.svg)
