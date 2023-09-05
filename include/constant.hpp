@@ -8,7 +8,7 @@ constexpr unsigned ZY_IO_URING_BUFFER_RING_SIZE = 8192;
 
 constexpr unsigned ZY_IO_URING_BUFFER_SIZE = 1024;
 
-constexpr unsigned ZY_LISTEN_BACKLOG = 511;
+constexpr unsigned ZY_LISTEN_BACKLOG = 4096;
 
 }  // namespace zy_http
 

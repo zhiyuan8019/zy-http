@@ -60,34 +60,37 @@ auto ThreadPool::dispatch(int fd, IoUring* ring) -> void {
     io_uring_prep_msg_ring(sqe, to_submit->get_ring_fd(), 0,
                            reinterpret_cast<unsigned long long>(user_data_ptr), 0);
 
-    ring->submit();
+    // ring->submit();
 
     index_++;
 }
 
 auto ThreadPool::run_loop(IoUring* local_ring) -> void {
     while (is_active_.load(std::memory_order_relaxed)) {
-        auto cqe_ptr = local_ring->wait_cqe();
+        local_ring->submit_and_wait(1);
+        for (io_uring_cqe* const cqe_ptr : *local_ring) {
+            // auto cqe_ptr = local_ring->wait_cqe();
 
-        if (cqe_ptr == nullptr) continue;
-        user_data* user_data_ptr = reinterpret_cast<user_data*>(io_uring_cqe_get_data(cqe_ptr));
+            if (cqe_ptr == nullptr) continue;
+            user_data* user_data_ptr = reinterpret_cast<user_data*>(io_uring_cqe_get_data(cqe_ptr));
 
-        if (user_data_ptr == nullptr) {
+            if (user_data_ptr == nullptr) {
+                local_ring->cqe_seen(cqe_ptr);
+                continue;
+            }
+
+            user_data_ptr->cqe_res = cqe_ptr->res;
+            user_data_ptr->cqe_flags = cqe_ptr->flags;
+            auto coroutine_addr = user_data_ptr->coroutine;
             local_ring->cqe_seen(cqe_ptr);
-            continue;
-        }
 
-        user_data_ptr->cqe_res = cqe_ptr->res;
-        user_data_ptr->cqe_flags = cqe_ptr->flags;
-        auto coroutine_addr = user_data_ptr->coroutine;
-        local_ring->cqe_seen(cqe_ptr);
+            if (user_data_ptr->only_coroutine) {
+                delete user_data_ptr;
+            }
 
-        if (user_data_ptr->only_coroutine) {
-            delete user_data_ptr;
-        }
-
-        if (coroutine_addr != nullptr) {
-            std::coroutine_handle<>::from_address(coroutine_addr).resume();
+            if (coroutine_addr != nullptr) {
+                std::coroutine_handle<>::from_address(coroutine_addr).resume();
+            }
         }
     }
 }

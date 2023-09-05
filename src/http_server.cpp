@@ -16,21 +16,24 @@ auto HttpServer::run() -> void {
     ring_.prep_multishot_accept(socketfd);
 
     while (1) {
-        io_uring_cqe *cqe = ring_.wait_cqe();
-        auto fd = cqe->res;
-        auto flag = cqe->flags;
-        auto user_data = cqe->user_data;
+        ring_.submit_and_wait(1);
+        for (io_uring_cqe* const cqe : ring_) {
+            // io_uring_cqe *cqe = ring_.wait_cqe();
+            auto fd = cqe->res;
+            auto flag = cqe->flags;
+            auto user_data = cqe->user_data;
 
-        // ring msg cqe : just continue
-        if (user_data == 1) {
+            // ring msg cqe : just continue
+            if (user_data == 1) {
+                ring_.cqe_seen(cqe);
+                continue;
+            }
+            // client socket: fd
+            thread_pool_.dispatch(fd, &ring_);
             ring_.cqe_seen(cqe);
-            continue;
-        }
-        // client socket: fd
-        thread_pool_.dispatch(fd, &ring_);
-        ring_.cqe_seen(cqe);
-        if (!(flag & IORING_CQE_F_MORE)) {
-            ring_.prep_multishot_accept(socketfd);
+            if (!(flag & IORING_CQE_F_MORE)) {
+                ring_.prep_multishot_accept(socketfd);
+            }
         }
     }
 }

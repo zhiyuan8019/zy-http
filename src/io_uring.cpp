@@ -55,7 +55,7 @@ auto IoUring::prep_multishot_accept(int sockfd) -> void {
         throw std::runtime_error("failed to invoke 'io_uring_get_sqe'");
     }
     io_uring_prep_multishot_accept(sqe, sockfd, nullptr, nullptr, 0);
-    io_uring_submit_and_wait(&ring_, 1);
+    // io_uring_submit_and_wait(&ring_, 1);
 }
 
 auto IoUring::prep_splice(user_data *sqe_data, int raw_file_descriptor_in,
@@ -66,10 +66,10 @@ auto IoUring::prep_splice(user_data *sqe_data, int raw_file_descriptor_in,
     io_uring_prep_splice(sqe, raw_file_descriptor_in, -1, raw_file_descriptor_out, -1, length, 0);
 
     io_uring_sqe_set_data(sqe, sqe_data);
-    int ret = io_uring_submit(&ring_);
-    if (ret < 0) {
-        throw std::runtime_error("failed to invoke 'prep_splice:io_uring_submit'");
-    }
+    // int ret = io_uring_submit(&ring_);
+    // if (ret < 0) {
+    //     throw std::runtime_error("failed to invoke 'prep_splice:io_uring_submit'");
+    // }
 }
 
 auto IoUring::prep_recv(user_data *sqe_data, const int raw_file_descriptor, const size_t length)
@@ -79,7 +79,7 @@ auto IoUring::prep_recv(user_data *sqe_data, const int raw_file_descriptor, cons
     sqe->buf_group = id_;
     io_uring_sqe_set_flags(sqe, IOSQE_BUFFER_SELECT);
     io_uring_sqe_set_data(sqe, sqe_data);
-    io_uring_submit(&ring_);
+    // io_uring_submit(&ring_);
 }
 
 auto IoUring::prep_recv_without_buffer(user_data *sqe_data, const int raw_file_descriptor,
@@ -87,7 +87,7 @@ auto IoUring::prep_recv_without_buffer(user_data *sqe_data, const int raw_file_d
     io_uring_sqe *sqe = io_uring_get_sqe(&ring_);
     io_uring_prep_recv(sqe, raw_file_descriptor, buffer, length, 0);
     io_uring_sqe_set_data(sqe, sqe_data);
-    io_uring_submit(&ring_);
+    // io_uring_submit(&ring_);
 }
 
 auto IoUring::prep_send(user_data *sqe_data, const int raw_file_descriptor,
@@ -95,7 +95,7 @@ auto IoUring::prep_send(user_data *sqe_data, const int raw_file_descriptor,
     io_uring_sqe *sqe = io_uring_get_sqe(&ring_);
     io_uring_prep_send(sqe, raw_file_descriptor, buffer.data(), length, 0);
     io_uring_sqe_set_data(sqe, sqe_data);
-    io_uring_submit(&ring_);
+    // io_uring_submit(&ring_);
 }
 
 auto IoUring::submit_and_wait(unsigned wait_nr) -> void {
